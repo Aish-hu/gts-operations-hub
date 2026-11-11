@@ -1,0 +1,35 @@
+{
+  "realm": "gts",
+  "enabled": true,
+  "displayName": "GTS Operations Hub",
+  "roles": {
+    "realm": [
+      {"name": "platform-admin"},
+      {"name": "operator"},
+      {"name": "viewer"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "gts-dashboard",
+      "name": "GTS Operations Hub Dashboard",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8000/*"],
+      "webOrigins": ["http://localhost:8000"]
+    }
+  ],
+  "users": [
+    {
+      "username": "demo-operator",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "demo-operator@example.local",
+      "credentials": [{"type": "password", "value": "ChangeMe123!", "temporary": true}],
+      "realmRoles": ["operator"]
+    }
+  ]
+}

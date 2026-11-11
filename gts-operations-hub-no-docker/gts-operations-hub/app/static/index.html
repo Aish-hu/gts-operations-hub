@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTS Operations Hub</title>
+<style>
+:root{font-family:Inter,system-ui,Arial;color:#e8eef8;background:#0b1220}*{box-sizing:border-box}
+body{margin:0}.shell{max-width:1180px;margin:auto;padding:32px 22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}
+h1{font-size:28px;margin:0}.sub{color:#9eacc2;margin-top:6px}.pill{border:1px solid #29415f;border-radius:99px;padding:7px 12px;color:#9fd8c5;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#121e30;border:1px solid #22334c;border-radius:14px;padding:18px}
+.metric{font-size:30px;font-weight:700;margin-top:10px}.muted{color:#9eacc2;font-size:13px}
+.section{margin-top:22px}.section h2{font-size:17px;margin:0 0 12px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+button{background:#4f8cff;color:white;border:0;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+button.secondary{background:#24364f}table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #26364c}th{color:#9eacc2}
+.status{border-radius:20px;padding:4px 8px;font-size:11px;background:#173e32;color:#9de0bd}
+.status.degraded{background:#49351b;color:#ffd18b}.status.critical{background:#4a2028;color:#ffabb4}
+.panel{overflow:auto}.notice{color:#9eacc2;font-size:12px;margin-top:16px}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}header{align-items:flex-start;flex-direction:column}}
+</style></head>
+<body><main class="shell">
+<header><div><h1>GTS Operations Hub</h1><div class="sub">Infrastructure · Identity · Configuration · Reliability</div></div><span class="pill">● LOCAL DEMO ENVIRONMENT</span></header>
+<section class="grid">
+<div class="card"><div class="muted">Total assets / CIs</div><div class="metric" id="total">—</div></div>
+<div class="card"><div class="muted">Healthy assets</div><div class="metric" id="healthy">—</div></div>
+<div class="card"><div class="muted">Unhealthy assets</div><div class="metric" id="unhealthy">—</div></div>
+<div class="card"><div class="muted">Open incidents</div><div class="metric" id="incidents">—</div></div>
+</section>
+<section class="section card"><h2>Configuration items</h2><div class="toolbar"><button onclick="seed()">Load demo data</button><button class="secondary" onclick="loadData()">Refresh</button><button class="secondary" onclick="addIncident()">Simulate incident</button></div>
+<div class="panel"><table><thead><tr><th>Name</th><th>Type</th><th>Environment</th><th>Owner</th><th>Status</th></tr></thead><tbody id="assets"><tr><td colspan="5">Loading…</td></tr></tbody></table></div></section>
+<section class="section card"><h2>Open incidents</h2><div class="panel"><table><thead><tr><th>Incident</th><th>Severity</th><th>Status</th><th>Action</th></tr></thead><tbody id="incidentRows"></tbody></table></div></section>
+<div class="notice">Demo dashboard backed by FastAPI + PostgreSQL. API documentation: <a href="/docs" style="color:#8eb8ff">/docs</a> · Metrics: <a href="/api/v1/metrics" style="color:#8eb8ff">/api/v1/metrics</a></div>
+</main>
+<script>
+async function api(path,opts={}){const r=await fetch(path,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json()}
+async function loadData(){try{const [o,a,i]=await Promise.all([api('/api/v1/overview'),api('/api/v1/assets'),api('/api/v1/incidents?status=open')]);
+document.getElementById('total').textContent=o.total_assets;document.getElementById('healthy').textContent=o.healthy_assets;document.getElementById('unhealthy').textContent=o.unhealthy_assets;document.getElementById('incidents').textContent=o.open_incidents;
+document.getElementById('assets').innerHTML=a.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.asset_type)}</td><td>${esc(x.environment)}</td><td>${esc(x.owner)}</td><td><span class="status ${x.status}">${esc(x.status)}</span></td></tr>`).join('')||'<tr><td colspan="5">No assets yet. Load demo data.</td></tr>';
+document.getElementById('incidentRows').innerHTML=i.map(x=>`<tr><td>${esc(x.title)}</td><td>${esc(x.severity)}</td><td>${esc(x.status)}</td><td><button class="secondary" onclick="resolveIncident(${x.id})">Resolve</button></td></tr>`).join('')||'<tr><td colspan="4">No open incidents.</td></tr>';
+}catch(e){alert('Could not load dashboard: '+e.message)}}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function seed(){try{await api('/api/v1/demo/seed',{method:'POST'});await loadData()}catch(e){alert(e.message)}}
+async function addIncident(){const title=prompt('Incident title?','API latency elevated');if(!title)return;try{await api('/api/v1/incidents',{method:'POST',body:JSON.stringify({title,severity:'medium',details:'Created from dashboard demo'})});await loadData()}catch(e){alert(e.message)}}
+async function resolveIncident(id){try{await api(`/api/v1/incidents/${id}/resolve`,{method:'POST'});await loadData()}catch(e){alert(e.message)}}
+loadData();setInterval(loadData,15000);
+</script></body></html>
